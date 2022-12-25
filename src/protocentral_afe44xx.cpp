@@ -13,8 +13,6 @@
 //   For information on how to use, visit https://github.com/Protocentral/AFE44XX_Oximeter
 /////////////////////////////////////////////////////////////////////////////////////////
 
-
-
 #include "protocentral_afe44xx.h"
 #include "Protocentral_spo2_algorithm.h"
 
@@ -50,6 +48,12 @@ const uint8_t uch_spo2_table[184]={ 95, 95, 95, 96, 96, 96, 97, 97, 97, 97, 97, 
 
 spo2_algorithm Spo2;
 
+/*
+  The below code is creating a function outside the class with the parameters cs_pin and pwdn_pin which refer to the 
+  pin select and power down pins. The private variables are intialised here and cs_pin is set high in order to start the 
+  communication with the device.
+*/
+
 AFE44XX::AFE44XX(int cs_pin, int pwdn_pin)
 {
     _cs_pin=cs_pin;
@@ -70,19 +74,26 @@ AFE44XX::AFE44XX(int cs_pin, int pwdn_pin)
     */
 }
 
+/*
+  CONTROL0 register handles the AFE software and count timer reset, diagnostics enable and spi read functions.
+  Setting the lsb to 1 enables the spi read function.
+*/
+
 boolean AFE44XX::get_AFE44XX_Data(afe44xx_data *afe44xx_raw_data)
 {
-  afe44xxWrite(CONTROL0, 0x000001);
-  IRtemp = afe44xxRead(LED1VAL);
-  afe44xxWrite(CONTROL0, 0x000001);
-  REDtemp = afe44xxRead(LED2VAL);
+  afe44xxWrite(CONTROL0, 0x000001);/*Enabling spi read*/
+  IRtemp = afe44xxRead(LED1VAL);/*Reading the LED1VAL data*/
+  afe44xxWrite(CONTROL0, 0x000001);/*Enabling spi read*/
+  REDtemp = afe44xxRead(LED2VAL);/*Reading the LED2VAL data*/
   afe44xx_data_ready = true;
-  IRtemp = (unsigned long) (IRtemp << 10);
-  afe44xx_raw_data->IR_data = (signed long) (IRtemp);
-  afe44xx_raw_data->IR_data = (signed long) ((afe44xx_raw_data->IR_data) >> 10);
-  REDtemp = (unsigned long) (REDtemp << 10);
-  afe44xx_raw_data->RED_data = (signed long) (REDtemp);
-  afe44xx_raw_data->RED_data = (signed long) ((afe44xx_raw_data->RED_data) >> 10);
+  IRtemp = (unsigned long) (IRtemp << 10);/*Shifting the content of IRtemp to the left by 10 times*/
+  afe44xx_raw_data->IR_data = (signed long) (IRtemp);/*Arrow operator is used to assign the IRtemp content to IR_data which
+  is a data member of afe44xx_raw_data*/
+  afe44xx_raw_data->IR_data = (signed long) ((afe44xx_raw_data->IR_data) >> 10);/*Shifting the content of IR_data to the right by 10 times*/
+  REDtemp = (unsigned long) (REDtemp << 10);/*Shifting the content of REDtemp to the left by 10 times*/
+  afe44xx_raw_data->RED_data = (signed long) (REDtemp);/*Arrow operator is used to assign the REDtemp content to RED_data which
+  is a data member of afe44xx_raw_data*/
+  afe44xx_raw_data->RED_data = (signed long) ((afe44xx_raw_data->RED_data) >> 10);/*Shifting the content of REDdata to the right by 10 times*/
 
   if (dec == 20)
   {
@@ -107,6 +118,9 @@ boolean AFE44XX::get_AFE44XX_Data(afe44xx_data *afe44xx_raw_data)
   return true;
 }
 
+/*First 8 bits are used for address and the other 24 bits are used to write the particular data or the function that we
+want*/
+
 void AFE44XX::afe44xx_init()
 {
   digitalWrite(_pwdn_pin, LOW);
@@ -115,7 +129,7 @@ void AFE44XX::afe44xx_init()
   delay(500);
 
   afe44xxWrite(CONTROL0, 0x000000);
-  afe44xxWrite(CONTROL0, 0x000008);
+  afe44xxWrite(CONTROL0, 0x000008);/*Making CONTROL0 spi read disable and enabling software reset*/
   afe44xxWrite(TIAGAIN, 0x000000); // CF = 5pF, RF = 500kR
   afe44xxWrite(TIA_AMB_GAIN, 0x000001);
   afe44xxWrite(LEDCNTRL, 0x001414);
@@ -153,10 +167,11 @@ void AFE44XX::afe44xx_init()
   delay(1000);
 }
 
-void AFE44XX :: afe44xxWrite (uint8_t address, uint32_t data)
+void AFE44XX :: afe44xxWrite (uint8_t address, uint32_t data)/*Creating the afe44xxWrite function which belongs to the 
+class AFE44XX*/
 {
-  SPI.beginTransaction(SPI_SETTINGS);
-  digitalWrite (_cs_pin, LOW); // enable device
+  SPI.beginTransaction(SPI_SETTINGS);/*SPI_SETTINGS is a macro which contains settings like data speed and spi operating mode*/
+  digitalWrite (_cs_pin, LOW); // enable device - active low
   SPI.transfer (address); // send address to device
   SPI.transfer ((data >> 16) & 0xFF); // write top 8 bits
   SPI.transfer ((data >> 8) & 0xFF); // write middle 8 bits

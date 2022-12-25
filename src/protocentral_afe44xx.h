@@ -22,6 +22,9 @@
 #include <string.h>
 #include <math.h>
 
+/*Creating a afe44xx_Record to hold heart_rate, spo2, IR_data, RED_data, Buffer_count_overflow values. Also instantiating and
+object - afe44xx_data*/
+
 typedef struct afe44xx_Record{
   int32_t heart_rate;
   int32_t spo2;
@@ -29,6 +32,8 @@ typedef struct afe44xx_Record{
   signed long RED_data;
   boolean buffer_count_overflow = false;
 } afe44xx_data;
+
+/*Creating a class AFE44XX*/
 
 class AFE44XX
 {
@@ -47,7 +52,7 @@ class AFE44XX
     int _drdy_pin;
 };
 
-//afe44xx Register definition
+//afe44xx Register definition - No need to go through
 #define CONTROL0      0x00
 #define LED2STC       0x01
 #define LED2ENDC      0x02
